@@ -126,7 +126,7 @@ namespace DesktopRoach
             if(!demo && !world.Load(savePath) && world.Load(savePath+".bak")) world.LastEvent="主存档损坏，已从备份恢复";
             using (Stream xaml = Assembly.GetExecutingAssembly().GetManifestResourceStream("ControlWindow.xaml")) window = (Window)XamlReader.Load(xaml);
             app.MainWindow = window;
-            Find<TextBlock>("SaveText").Text="本地存档 · v0.2";
+            Find<TextBlock>("SaveText").Text="本地存档 · v0.3";
             preview = new Scene(world); Find<Grid>("SceneHost").Children.Add(preview);
             toolButtons = new[] { "ObserveTool", "SwatterTool", "SprayTool", "BaitTool", "BroomTool", "MopTool" }.Select(Find<Button>).ToArray();
             for(int i=0;i<toolButtons.Length;i++)
@@ -294,7 +294,7 @@ namespace DesktopRoach
         private void Save()
         {
             if(demoMode) return;
-            try { world.Save(savePath); Find<TextBlock>("SaveText").Text="已保存 "+DateTime.Now.ToString("HH:mm")+" · v0.2"; }
+            try { world.Save(savePath); Find<TextBlock>("SaveText").Text="已保存 "+DateTime.Now.ToString("HH:mm")+" · v0.3"; }
             catch(IOException) { Find<TextBlock>("SaveText").Text="保存失败"; }
             catch(UnauthorizedAccessException) { Find<TextBlock>("SaveText").Text="保存失败"; }
             catch(InvalidOperationException) { Find<TextBlock>("SaveText").Text="保存失败"; }
@@ -332,6 +332,8 @@ namespace DesktopRoach
             if(args.Contains("--self-test")) return SelfTests.Run();
             int export=Array.IndexOf(args,"--export-assets");
             if(export>=0 && args.Length>export+1) { Art.Export(Path.GetFullPath(args[export+1])); return 0; }
+            int skills=Array.IndexOf(args,"--export-skills");
+            if(skills>=0 && args.Length>skills+1) { Art.ExportSkills(Path.GetFullPath(args[skills+1]),.5); return 0; }
             bool created;
             using(var mutex=new Mutex(true,"Local\\DesktopRoach.App",out created))
             {

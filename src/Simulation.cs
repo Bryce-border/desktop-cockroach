@@ -31,6 +31,7 @@ namespace DesktopRoach
         public List<GroundItem> Items = new List<GroundItem>();
         public List<DeskObject> Objects = new List<DeskObject>();
         public List<PetState> Pets = new List<PetState>();
+        public List<KeyboardBomb> Bombs = new List<KeyboardBomb>();
     }
     public partial class Simulation
     {
@@ -193,6 +194,7 @@ namespace DesktopRoach
                 if (data.Version != 1 || data.Roaches == null || data.Items == null || data.Objects == null || data.Roaches.Count > MaxRoaches || data.Items.Count > MaxItems || data.Objects.Count > 10) return false;
                 if (!Finite(data.Pollution) || !Finite(data.Elapsed) || data.Roaches.Any(r => r == null || !Finite(r.X) || !Finite(r.Y) || !Finite(r.Angle) || !Finite(r.Age) || !Finite(r.Meal) || !Finite(r.Poison)) || data.Items.Any(i => i == null || !Finite(i.X) || !Finite(i.Y) || !Finite(i.Age) || !Finite(i.Life)) || data.Objects.Any(o => o == null || !Finite(o.X) || !Finite(o.Y))) return false;
                 if(!ValidatePets(data.Pets)) return false;
+                if(!ValidateBombs(data.Bombs)) return false;
                 if(data.Pets==null || data.Pets.Count==0) data.Pets=PetCatalog.Create();
                 data.Difficulty = Math.Max(0, Math.Min(2, data.Difficulty)); data.Pollution = Clamp(data.Pollution, 0, 100);
                 Data = data; LastEvent = "已恢复上次的桌面生态"; return true;

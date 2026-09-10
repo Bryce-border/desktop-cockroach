@@ -74,6 +74,7 @@ namespace DesktopRoach
             foreach (var item in World.Data.Items) DrawItem(dc,item);
             foreach (var r in World.Data.Roaches) DrawRoach(dc,r,World.Data.Elapsed);
             foreach (var pet in World.Data.Pets.Where(p=>p.Deployed)) Art.DrawPet(dc,pet,World.Data.Elapsed);
+            foreach(var bomb in World.Data.Bombs) Art.DrawBomb(dc,bomb);
             double pollution = World.Data.Pollution;
             if (pollution > 1)
             {

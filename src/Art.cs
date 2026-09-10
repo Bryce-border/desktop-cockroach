@@ -102,15 +102,28 @@ namespace DesktopRoach
         }
         public static void DrawPet(DrawingContext dc,PetState pet,double time)
         {
-            double bounce=pet.Walking?Math.Abs(Math.Sin(pet.WalkPhase))*5:Math.Sin(time*2+pet.Id)*1.2;
+            foreach(var clone in pet.Clones) DrawPetActor(dc,pet,clone,time,true);
+            DrawPetActor(dc,pet,pet,time,false);
+        }
+        private static void DrawPetActor(DrawingContext dc,PetState owner,PetActor actor,double time,bool clone)
+        {
+            var pet=owner;
+            dc.PushTransform(new TranslateTransform(actor.X-pet.X,actor.Y-pet.Y));
+            if(clone) dc.PushOpacity(.62);
+            double bounce=actor.Walking?Math.Abs(Math.Sin(actor.WalkPhase))*5:Math.Sin(time*2+pet.Id)*1.2;
+            if(Simulation.IsEnraged(pet))
+            {
+                dc.DrawEllipse(null,new Pen(B("#E78762"),2),new Point(pet.X,pet.Y+5),40,12);
+                for(int i=0;i<3;i++) Stroke(dc,"#DB6D55",2,pet.X-40-i*7,pet.Y-40+i*8,pet.X-50-i*7,pet.Y-40+i*8);
+            }
             dc.DrawEllipse(B("#22000000"),null,new Point(pet.X,pet.Y+7),33,9);
-            dc.PushTransform(new RotateTransform(pet.Walking?Math.Sin(pet.WalkPhase)*5:0,pet.X,pet.Y));
+            dc.PushTransform(new RotateTransform(actor.Walking?Math.Sin(actor.WalkPhase)*5:0,pet.X,pet.Y));
             dc.DrawImage(Pet(pet.Id),new Rect(pet.X-44,pet.Y-99-bounce,88,106)); dc.Pop();
             if(pet.Job!=PetJob.Rest && pet.CompanyLeft<=0 && pet.CareAnimation==null)
-                DrawTool(dc,pet.AnimationLeft>0?pet.ActionTool:pet.Job==PetJob.Hunt?Tool.Swatter:Tool.Broom,pet.X+38,pet.Y-25,70,pet.AnimationLeft>0?1-pet.AnimationLeft/.65:0);
+                DrawTool(dc,actor.AnimationLeft>0?actor.ActionTool:pet.Job==PetJob.Hunt?Tool.Swatter:Tool.Broom,pet.X+38,pet.Y-25,70,actor.AnimationLeft>0?1-actor.AnimationLeft/actor.ActionDuration:0);
             Box(dc,"#AF253C30",pet.X-33,pet.Y+16,66,5,2);
             Box(dc,pet.Energy<20?"#EC9B78":"#72C59D",pet.X-33,pet.Y+16,66*pet.Energy/100,5,2);
-            var label=pet.CompanyLeft>0?"陪伴中":pet.Status;
+            var label=clone?"分身 · "+actor.Status:pet.CompanyLeft>0?"陪伴中":Simulation.IsEnraged(pet)?"咖啡狂暴":pet.Status;
             var text=new FormattedText(label,CultureInfo.GetCultureInfo("zh-CN"),FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),12,B("#335844"),1);
             dc.DrawText(text,new Point(pet.X-text.Width/2,pet.Y+25));
             if(pet.CompanyLeft>0 || pet.AnimationLeft>1)
@@ -128,6 +141,74 @@ namespace DesktopRoach
                 var sleep=new FormattedText("z Z",CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),15,B("#648A9A"),1);
                 dc.DrawText(sleep,new Point(pet.X+25,pet.Y-99+Math.Sin(time*2)*3));
             }
+            if(pet.CoffeeLeft>0 && !clone)
+            {
+                double lift=Math.Sin(pet.CoffeeLeft/1.4*Math.PI)*15;
+                Box(dc,"#FFF3DC",pet.X+20,pet.Y-55-lift,22,25,4);
+                dc.DrawEllipse(null,new Pen(B("#FFF3DC"),4),new Point(pet.X+44,pet.Y-43-lift),5,7);
+                Oval(dc,"#734937",pet.X+31,pet.Y-53-lift,9,3);
+                Stroke(dc,"#A9C4C0",1.5,pet.X+25,pet.Y-62-lift,pet.X+28,pet.Y-70-lift);
+            }
+            if(pet.Id==2) dc.DrawEllipse(null,new Pen(B("#82CFBA"),2),new Point(pet.X+39,pet.Y-78),9,9);
+            if(pet.Id==4 && pet.RecoveryBoost)
+            {
+                Stroke(dc,"#8DCBEB",3,pet.X+35,pet.Y-61,pet.X+35,pet.Y-77);
+                Stroke(dc,"#8DCBEB",3,pet.X+28,pet.Y-70,pet.X+42,pet.Y-70);
+            }
+            if(pet.Id==5 && actor.AnimationLeft>0 && pet.CareAnimation==null)
+            {
+                double tx=actor.TargetX,ty=actor.TargetY;
+                var beam=new Pen(B("#A26CB7DC"),2) { DashStyle=DashStyles.Dash };
+                dc.DrawLine(beam,new Point(pet.X+30,pet.Y-45),new Point(tx,ty));
+                dc.DrawEllipse(null,new Pen(B("#6EABD4"),2),new Point(tx,ty),28,18);
+                DrawTool(dc,actor.ActionTool,tx,ty,85,1-actor.AnimationLeft/actor.ActionDuration);
+            }
+            if(clone) dc.Pop(); dc.Pop();
+        }
+        public static void DrawBomb(DrawingContext dc,KeyboardBomb bomb)
+        {
+            if(!bomb.Exploded)
+            {
+                double t=Math.Min(1,bomb.Age/.65),x=bomb.X+(bomb.TargetX-bomb.X)*t,y=bomb.Y+(bomb.TargetY-bomb.Y)*t-Math.Sin(t*Math.PI)*90;
+                dc.PushTransform(new RotateTransform(t*320,x,y));
+                Box(dc,"#242D39",x-33,y-13,66,27,4);
+                for(int row=0;row<3;row++) for(int col=0;col<9;col++) Box(dc,row==0?"#DCAA85":"#ACBECC",x-28+col*6,y-9+row*6,4,4,1);
+                Box(dc,"#DCE4E9",x-12,y+9,24,3,1); dc.Pop();
+            }
+            else
+            {
+                double t=Clamp01((bomb.Age-.65)/.45);
+                dc.PushOpacity(1-t);
+                dc.DrawEllipse(B("#25E8956D"),new Pen(B("#E99366"),3),new Point(bomb.TargetX,bomb.TargetY),140*t,140*t);
+                for(int i=0;i<12;i++) { double a=i*Math.PI/6; Box(dc,"#53687A",bomb.TargetX+Math.Cos(a)*t*130,bomb.TargetY+Math.Sin(a)*t*100,8,7,1); }
+                dc.Pop();
+            }
+        }
+        private static double Clamp01(double value) { return Math.Max(0,Math.Min(1,value)); }
+        public static void ExportSkills(string path,double time)
+        {
+            var visual=new DrawingVisual();
+            using(var dc=visual.RenderOpen())
+            {
+                dc.DrawRectangle(B("#E7EEEB"),null,new Rect(0,0,1200,620));
+                for(int i=0;i<6;i++)
+                {
+                    dc.PushTransform(new TranslateTransform(i%3*400,i/3*310));
+                    var text=new FormattedText(PetCatalog.Names[i]+" / "+PetCatalog.Talents[i],CultureInfo.GetCultureInfo("zh-CN"),FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),18,B("#355847"),1);
+                    dc.DrawText(text,new Point(24,20));
+                    var pet=new PetState { Id=i,Deployed=true,Job=PetJob.Hunt,X=175,Y=212,Energy=70,Walking=true,WalkPhase=time*10,Status="工作中" };
+                    if(i==0) { pet.Energy=45; pet.CoffeeLeft=1.1-time*.4; }
+                    if(i==2) { pet.Job=PetJob.Clean; pet.Energy=100; pet.Status="零耗体力"; }
+                    if(i==3) pet.Clones.Add(new PetActor { X=300,Y=222,Walking=true,WalkPhase=time*10+1,Status="协作中" });
+                    if(i==4) { pet.Job=PetJob.Rest; pet.Walking=false; pet.Energy=4; pet.RecoveryBoost=true; pet.Status="恢复速度 ×4"; }
+                    if(i==5) { pet.X=85; pet.TargetX=325; pet.TargetY=210; pet.ActionTool=Tool.Mop; pet.AnimationLeft=.4; pet.Job=PetJob.Clean; pet.Status="远程清掃"; }
+                    DrawPet(dc,pet,time);
+                    if(i==1) DrawBomb(dc,new KeyboardBomb { X=210,Y=170,TargetX=330,TargetY=215,Age=time*.5 });
+                    dc.Pop();
+                }
+            }
+            var bitmap=new RenderTargetBitmap(1200,620,96,96,PixelFormats.Pbgra32); bitmap.Render(visual);
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))); SaveBitmap(bitmap,path);
         }
         public static void Export(string directory)
         {

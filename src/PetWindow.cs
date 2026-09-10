@@ -13,7 +13,7 @@ namespace DesktopRoach
         private readonly Button[] cards=new Button[6];
         private readonly TextBlock[] cardStatus=new TextBlock[6];
         private readonly ProgressBar[] cardEnergy=new ProgressBar[6];
-        private readonly TextBlock title,stats,team,message;
+        private readonly TextBlock title,stats,team,message,skill;
         private readonly Image portrait;
         private readonly ComboBox job;
         private readonly Button dispatch,recall,feed,care,company;
@@ -39,11 +39,11 @@ namespace DesktopRoach
                 var content=new Grid(); content.RowDefinitions.Add(new RowDefinition { Height=new GridLength(1,GridUnitType.Star) });
                 content.RowDefinitions.Add(new RowDefinition { Height=GridLength.Auto }); content.RowDefinitions.Add(new RowDefinition { Height=GridLength.Auto });
                 content.RowDefinitions.Add(new RowDefinition { Height=GridLength.Auto });
-                var image=new Image { Source=Art.Pet(i),Height=112,Stretch=Stretch.Uniform,Margin=new Thickness(0,0,0,4) }; content.Children.Add(image);
+                var image=new Image { Source=Art.Pet(i),Height=88,Stretch=Stretch.Uniform,Margin=new Thickness(0,0,0,4) }; content.Children.Add(image);
                 var label=new TextBlock { Text=PetCatalog.Names[i],FontSize=16,FontWeight=FontWeights.SemiBold,HorizontalAlignment=HorizontalAlignment.Center }; Grid.SetRow(label,1); content.Children.Add(label);
                 cardStatus[i]=new TextBlock { FontSize=11,Foreground=Scene.Brush("#B5C8BA"),HorizontalAlignment=HorizontalAlignment.Center,Margin=new Thickness(0,5,0,7) }; Grid.SetRow(cardStatus[i],2); content.Children.Add(cardStatus[i]);
                 cardEnergy[i]=new ProgressBar { Height=4,Maximum=100,BorderThickness=new Thickness(0),Background=Scene.Brush("#3B4741"),Foreground=Scene.Brush("#9CDBB8") }; Grid.SetRow(cardEnergy[i],3); content.Children.Add(cardEnergy[i]);
-                cards[i]=new Button { Content=content,Margin=new Thickness(5),Padding=new Thickness(12,8,12,10),HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch,ToolTip=PetCatalog.Talents[i] };
+                cards[i]=new Button { Content=content,Margin=new Thickness(5),Padding=new Thickness(12,8,12,10),HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch,ToolTip=PetCatalog.Skills[i] };
                 cards[i].Click+=delegate { selected=id; SyncJob(); Refresh(); }; gallery.Children.Add(cards[i]);
             }
             var details=new Grid { Margin=new Thickness(0,0,0,12) };
@@ -52,6 +52,7 @@ namespace DesktopRoach
             var body=new StackPanel { Margin=new Thickness(16,0,0,0) }; Grid.SetColumn(body,1); details.Children.Add(body);
             title=new TextBlock { FontSize=19,FontWeight=FontWeights.SemiBold }; body.Children.Add(title);
             stats=new TextBlock { Foreground=Scene.Brush("#B0C4B6"),FontSize=12,Margin=new Thickness(0,7,0,12) }; body.Children.Add(stats);
+            skill=new TextBlock { Foreground=Scene.Brush("#DBC49A"),FontSize=11,TextWrapping=TextWrapping.Wrap,MinHeight=32,Margin=new Thickness(0,0,0,8) }; body.Children.Add(skill);
             var jobs=new StackPanel { Orientation=Orientation.Horizontal };
             job=new ComboBox { Width=118,Height=36,FontSize=13,VerticalContentAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,9,0),ItemsSource=new[]{"休息","消灭蟑螂","打扫卫生"} }; jobs.Children.Add(job);
             dispatch=Command("\uE768","派出",delegate { world.DispatchPet(selected,(PetJob)job.SelectedIndex); }); jobs.Children.Add(dispatch);
@@ -100,10 +101,13 @@ namespace DesktopRoach
             for(int i=0;i<6;i++)
             {
                 var p=world.Data.Pets[i]; cardEnergy[i].Value=p.Energy;
-                cardStatus[i].Text=PetCatalog.Talents[i]+" · "+(p.Deployed?p.Status:"待命")+" · "+p.Energy.ToString("0");
+                cardStatus[i].Text=(p.Deployed?p.Status:PetCatalog.Talents[i])+" · 体力 "+p.Energy.ToString("0")+(p.Clones.Count>0?" · 分身 "+p.Clones.Count:"");
                 cards[i].Background=Scene.Brush(i==selected?"#294337":"#23292B"); cards[i].BorderBrush=Scene.Brush(i==selected?"#9BCEB1":"#3B4440");
             }
             var pet=world.Data.Pets[selected]; portrait.Source=Art.Pet(selected); title.Text=PetCatalog.Names[selected]+" / "+PetCatalog.Talents[selected];
+            skill.Text=PetCatalog.Skills[selected];
+            if(selected==1) skill.Text+="  蓄力 "+pet.SpentProgress.ToString("0.0")+" / 10";
+            if(selected==3) skill.Text+="  蓄力 "+pet.SpentProgress.ToString("0.0")+" / 15";
             stats.Text="体力 "+pet.Energy.ToString("0")+"   饱食 "+pet.Hunger.ToString("0")+"   亲密 "+pet.Affection.ToString("0")+"   ·   灭虫 "+pet.Kills+" / 清扫 "+pet.Cleaned;
             SetLabel(dispatch,pet.Deployed?"调整任务":"派出"); dispatch.IsEnabled=!world.Paused&&(pet.Deployed||count<2);
             recall.IsEnabled=pet.Deployed;
