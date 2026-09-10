@@ -14,6 +14,7 @@
     <Compile Include="src\Simulation.cs"/><Compile Include="src\Scene.cs"/><Compile Include="src\DesktopApp.cs"/><Compile Include="src\SelfTests.cs"/>
     <Compile Include="src\Pets.cs"/><Compile Include="src\Art.cs"/><Compile Include="src\PetWindow.cs"/>
     <Compile Include="src\PetSkills.cs"/>
+    <Compile Include="src\DesktopControls.cs"/>
     <EmbeddedResource Include="assets\pets\pet-?.png"><LogicalName>%(Filename)%(Extension)</LogicalName></EmbeddedResource>
     <EmbeddedResource Include="src\ControlWindow.xaml"><LogicalName>ControlWindow.xaml</LogicalName></EmbeddedResource>
   </ItemGroup>

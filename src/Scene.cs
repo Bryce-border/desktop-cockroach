@@ -13,6 +13,7 @@ namespace DesktopRoach
         public Simulation World;
         public Tool SelectedTool;
         public bool IsOverlay, Interactive = true, ShowObjects = true;
+        public event Action<int,Point> PetClicked;
         private Point pointer, target;
         private bool inside, holding;
         private double scale = 1, ox, oy;
@@ -25,6 +26,8 @@ namespace DesktopRoach
             MouseLeave += delegate { inside = false; holding = false; Cursor = Cursors.Arrow; };
             MouseLeftButtonDown += delegate(object sender, MouseButtonEventArgs e)
             {
+                int petId=HitPet(e.GetPosition(this));
+                if(petId>=0) { if(PetClicked!=null) PetClicked(petId,PointToScreen(e.GetPosition(this))); e.Handled=true; return; }
                 if (!Interactive || SelectedTool == Tool.Observe) return;
                 target = ToWorld(e.GetPosition(this)); if (!inside) pointer = target;
                 inside = true; holding = true; World.Use(SelectedTool, pointer.X, pointer.Y); e.Handled = true;
@@ -32,6 +35,17 @@ namespace DesktopRoach
             MouseLeftButtonUp += delegate { holding = false; };
         }
         private Point ToWorld(Point p) { return new Point((p.X - ox) / scale, (p.Y - oy) / scale); }
+        public Rect PetBounds(int id)
+        {
+            double s=Math.Max(.01,Math.Min(ActualWidth/Simulation.Width,ActualHeight/Simulation.Height));
+            var pet=World.Data.Pets[id];
+            return new Rect((ActualWidth-Simulation.Width*s)/2+(pet.X-44)*s,(ActualHeight-Simulation.Height*s)/2+(pet.Y-104)*s,88*s,112*s);
+        }
+        internal int HitPet(Point point)
+        {
+            for(int i=World.Data.Pets.Count-1;i>=0;i--) if(World.Data.Pets[i].Deployed && PetBounds(i).Contains(point)) return i;
+            return -1;
+        }
         public void Frame(double dt)
         {
             bool slowed = World.Data.Roaches.Any(r => r.Baby && Simulation.Distance(pointer.X, pointer.Y, r.X, r.Y) < 42);

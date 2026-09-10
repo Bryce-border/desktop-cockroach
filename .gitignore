@@ -1,4 +1,5 @@
 bin/
+bin-v04/
 obj/
 .vs/
 artifacts/
