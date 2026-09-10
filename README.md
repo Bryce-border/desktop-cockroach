@@ -1,6 +1,6 @@
 # 桌面蟑螂 / Desktop Roach
 
-Windows 桌面生态小游戏，首版 v0.1。C# + WPF，使用系统自带二维绘图，无 NuGet 依赖、无服务器、无需管理员权限。
+Windows 桌面生态小游戏，v0.2 桌宠版。C# + WPF，使用系统自带二维绘图，无 NuGet 依赖、无服务器、无需管理员权限。
 
 ## 运行
 
@@ -26,9 +26,34 @@ Windows 10 / 11，.NET Framework 4.8。双击 `bin\DesktopRoach.exe`，或解压
 
 透明覆盖层会出现在应用窗口上方。支持全屏应用前台时自动隐藏并暂停，锁屏及系统休眠时暂停，显示器配置变化后退出覆盖层。污染覆盖最大约 23% 不透明度。快捷键注册失败时不允许启动覆盖层。
 
+## 桌宠小队
+
+从控制台右上角、悬浮工具栏或托盘打开「桌宠小队」。选择形象，再选择休息、消灭蟑螂或打扫卫生，点击「派出」。最多同时派出两只，已派出的桌宠可以调整任务或召回。
+
+| 桌宠 | 特长 |
+| --- | --- |
+| 早八鹅 | 移动快，适合巡逻追赶 |
+| 炸毛鹅 | 灭虫消耗较低，拍打冷却较短 |
+| 充鹅不闻 | 清掃体力消耗最低 |
+| 轻鹅易举 | 灭虫清扫均较省力 |
+| 鹅累了 | 慢速移动，适合休息陪伴 |
+| 等放假鹅 | 综合型搭档 |
+
+体力、饱食、亲密和工作统计每只独立保存。追赶和工作消耗体力，体力不足自动改为休息；恢复后需重新派遣工作。饥饿时移动速度降低。桌宠能清理食物、残骸、卵鞘和油污，保留玩家放置的诱饵。
+
+- 喂食：体力 +28，饱食 +35，冷却 30 秒。
+- 照顾：体力 +12，亲密 +15，冷却 20 秒。
+- 陪伴：暂停桌宠工作 15 秒，每秒恢复 1.2 体力，冷却 35 秒。
+- 休息：每秒缓慢恢复 0.06 体力。
+- 游戏暂停、锁屏和环境自动休眠会冻结桌宠及冷却计时，离线不推进。
+
+「重新开始」会同时重置本局桌宠的体力、派遣和照顾记录。关闭桌宠小队面板不影响已派出的桌宠工作。
+
+六款形象来自用户提供参考图的透明抠图，使用二维位移动画。工具支持拍打、挥扫、拖洗和诱饵投放动画。素材与来源说明见 `assets/README.md`；基础形象总览为 `assets/pets/pet-roster.png`，工具总览为 `assets/tools/tools-gallery.png`。
+
 ## 存档
 
-路径：`%LOCALAPPDATA%\DesktopRoach\ecosystem.xml`。每 30 秒和正常退出时保存，保留 `.bak` 备份。主存档无效时尝试恢复备份；离线期间不继续繁殖。`--demo` 和截图模式不会覆盖存档。
+路径：`%LOCALAPPDATA%\DesktopRoach\ecosystem.xml`。每 30 秒和正常退出时保存，保留 `.bak` 备份。主存档无效时尝试恢复备份；离线期间不继续繁殖。兼容 v0.1 存档，首次加载补齐六只未派出的桌宠。`--demo`、`--ui-test` 和截图模式不会覆盖存档。
 
 ## 构建与验证
 
@@ -47,11 +72,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\package.ps1
 ```powershell
 .\bin\DesktopRoach.exe --snapshot artifacts\preview.png
 .\bin\DesktopRoach.exe --compact --snapshot artifacts\preview-compact.png
+.\bin\DesktopRoach.exe --pets --snapshot artifacts\pets-panel.png
+.\bin\DesktopRoach.exe --export-assets assets\tools
+.\bin\DesktopRoach.exe --ui-test
 ```
 
-自检涵盖繁殖、成长、消杀、清扫、冷却、诱饵数量及过期、物件移动、暂停、存档、异常数据及一小时加速模拟。
+48 项自检涵盖生态规则、两只桌宠派遣上限、任务效率、疲劳停工、饲养冷却、持续陪伴、旧存档迁移、透明贴图及一小时加速模拟。`--ui-test` 验证 WPF 按钮事件对应的派出、喂食、照顾、陪伴、召回和选择流程，结果位于 `bin/ui-test-results.txt`，不代表系统鼠标点击测试。
 
-## 首版边界
+## 当前边界
 
 - 桌面图标是游戏内仿真物件，尚未接入 Explorer 真实快捷方式移动。
 - 多屏采用相同生态映射到各显示器，尚未实现跨屏独立生态或混合 DPI 精确交互验证。
@@ -65,3 +93,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\package.ps1
 - `src/ControlWindow.xaml`：中文控制台。
 - `src/DesktopApp.cs`：透明窗口、托盘、热键、生命周期和存档调度。
 - `src/SelfTests.cs`：无需测试框架的确定性核心自检。
+- `src/Pets.cs`：桌宠派遣、任务、体力及照顾规则。
+- `src/PetWindow.cs`：桌宠选择与照顾面板。
+- `src/Art.cs`：工具动画位图缓存和桌宠贴图动画。

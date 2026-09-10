@@ -66,9 +66,9 @@ namespace DesktopRoach
     internal class ToolPalette : Window
     {
         private readonly List<Button> buttons = new List<Button>();
-        public ToolPalette(Action<Tool> select, Action hide, Action control)
+        public ToolPalette(Action<Tool> select, Action hide, Action control, Action openPets)
         {
-            Title = "桌面蟑螂 · 工具"; Width = 448; Height = 65; WindowStyle = WindowStyle.None;
+            Title = "桌面蟑螂 · 工具"; Width = 500; Height = 65; WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize; Topmost = true; ShowInTaskbar = false;
             Background = Scene.Brush("#14261D"); Foreground = Scene.Brush("#DDECE2");
             var stack = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
@@ -78,9 +78,11 @@ namespace DesktopRoach
             {
                 Tool tool = (Tool)i;
                 var button = MakeButton(icons[i], names[i]);
+                if(i>0) button.Content=new Image { Source=Art.ToolFrame(tool,0),Width=37,Height=37 };
                 button.Click += delegate { select(tool); };
                 buttons.Add(button); stack.Children.Add(button);
             }
+            var petButton=MakeButton("\uE902","桌宠小队"); petButton.Click+=delegate { openPets(); }; stack.Children.Add(petButton);
             var settings = MakeButton("\uE713", "打开控制台"); settings.Click += delegate { control(); }; stack.Children.Add(settings);
             var close = MakeButton("\uE711", "暂停并隐藏"); close.Click += delegate { hide(); }; stack.Children.Add(close);
             Content = stack;
@@ -105,6 +107,8 @@ namespace DesktopRoach
         private readonly Simulation world;
         private readonly List<Overlay> overlays = new List<Overlay>();
         private ToolPalette palette;
+        private PetWindow petWindow;
+        private bool compact;
         private readonly Forms.NotifyIcon tray;
         private readonly DispatcherTimer timer;
         private readonly Stopwatch stopwatch = Stopwatch.StartNew();
@@ -122,16 +126,22 @@ namespace DesktopRoach
             if(!demo && !world.Load(savePath) && world.Load(savePath+".bak")) world.LastEvent="主存档损坏，已从备份恢复";
             using (Stream xaml = Assembly.GetExecutingAssembly().GetManifestResourceStream("ControlWindow.xaml")) window = (Window)XamlReader.Load(xaml);
             app.MainWindow = window;
+            Find<TextBlock>("SaveText").Text="本地存档 · v0.2";
             preview = new Scene(world); Find<Grid>("SceneHost").Children.Add(preview);
             toolButtons = new[] { "ObserveTool", "SwatterTool", "SprayTool", "BaitTool", "BroomTool", "MopTool" }.Select(Find<Button>).ToArray();
-            for(int i=0;i<toolButtons.Length;i++) { Tool tool = (Tool)i; toolButtons[i].Click += delegate { SelectTool(tool); }; }
+            for(int i=0;i<toolButtons.Length;i++)
+            {
+                Tool tool = (Tool)i; toolButtons[i].Click += delegate { SelectTool(tool); };
+                if(i>0) { var panel=(StackPanel)toolButtons[i].Content; panel.Children.RemoveAt(0); panel.Children.Insert(0,new Image { Source=Art.ToolFrame(tool,0),Width=30,Height=32,Margin=new Thickness(0,0,8,0) }); }
+            }
+            Find<Button>("PetsButton").Click+=delegate { OpenPets(); };
             difficultyButtons = new[]{"EasyButton","NormalButton","HardButton"}.Select(Find<Button>).ToArray();
             for(int i=0;i<difficultyButtons.Length;i++) { int value=i; difficultyButtons[i].Click += delegate { world.Data.Difficulty=value; UpdateSelection(); }; }
             Find<Button>("PauseButton").Click += delegate { TogglePause(); };
             Find<Button>("DesktopButton").Click += delegate { if(desktop) StopDesktop(); else StartDesktop(); };
             Find<Button>("ResetButton").Click += delegate
             {
-                if(MessageBox.Show(window,"清空当前蟑螂、污物和清理记录，开始新的巡逻？","重新开始",MessageBoxButton.YesNo,MessageBoxImage.Question)==MessageBoxResult.Yes) { world.Reset(); Refresh(); }
+                if(MessageBox.Show(window,"清空当前蟑螂、污物和清理记录，并重置桌宠体力、派遣与照顾记录？","重新开始",MessageBoxButton.YesNo,MessageBoxImage.Question)==MessageBoxResult.Yes) { world.Reset(); Refresh(); }
             };
             Find<CheckBox>("ObjectsCheck").Click += delegate { foreach(var overlay in overlays) overlay.Surface.ShowObjects = Find<CheckBox>("ObjectsCheck").IsChecked == true; preview.ShowObjects=Find<CheckBox>("ObjectsCheck").IsChecked==true; };
             window.KeyDown += delegate(object sender,KeyEventArgs e) { if(e.Key==Key.Escape) SelectTool(Tool.Observe); };
@@ -146,6 +156,7 @@ namespace DesktopRoach
             tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Application, Text = "桌面蟑螂", Visible = true };
             var menu = new Forms.ContextMenuStrip();
             menu.Items.Add("打开控制台",null,delegate { OpenControl(); });
+            menu.Items.Add("桌宠小队",null,delegate { OpenPets(); });
             menu.Items.Add("暂停 / 继续",null,delegate { TogglePause(); });
             menu.Items.Add("暂停并隐藏",null,delegate { EmergencyHide(); });
             menu.Items.Add("退出",null,delegate { window.Close(); });
@@ -158,6 +169,8 @@ namespace DesktopRoach
             {
                 world.Data.Pollution = 18;
                 world.Add(ItemKind.Egg,870,220); world.Add(ItemKind.Stain,1010,540); world.Spawn(true,560,500);
+                world.DispatchPet(0,PetJob.Hunt); world.DispatchPet(2,PetJob.Clean);
+                world.Data.Pets[0].Energy=72; world.Data.Pets[2].Energy=54;
             }
         }
         private T Find<T>(string name) where T : class { return window.FindName(name) as T; }
@@ -204,7 +217,7 @@ namespace DesktopRoach
             {
                 var overlay = new Overlay(world,screen); overlays.Add(overlay); overlay.Surface.ShowObjects = Find<CheckBox>("ObjectsCheck").IsChecked==true; overlay.Show();
             }
-            palette=new ToolPalette(SelectTool,EmergencyHide,OpenControl); palette.Show();
+            palette=new ToolPalette(SelectTool,EmergencyHide,OpenControl,OpenPets); palette.Show();
             SelectTool(Tool.Observe);
             Find<TextBlock>("DesktopButtonText").Text="返回演练场";
             Find<TextBlock>("ModeText").Text="桌面入侵中";
@@ -221,6 +234,12 @@ namespace DesktopRoach
         private void OpenControl()
         {
             SelectTool(Tool.Observe); window.Show(); window.WindowState=WindowState.Normal; window.Activate();
+        }
+        public void OpenPets()
+        {
+            OpenControl();
+            if(petWindow==null) { petWindow=new PetWindow(window,world); if(compact) petWindow.SetCompactSize(); petWindow.Closed+=delegate { petWindow=null; }; petWindow.Show(); }
+            else { petWindow.WindowState=WindowState.Normal; petWindow.Activate(); }
         }
         private void EmergencyHide() { world.Paused=true; StopDesktop(); world.LastEvent="已暂停，桌面覆盖层已隐藏"; OpenControl(); Refresh(); }
         private void TogglePause() { world.Paused=!world.Paused; if(world.Paused) SelectTool(Tool.Observe); Refresh(); }
@@ -258,6 +277,7 @@ namespace DesktopRoach
         }
         private void Refresh()
         {
+            if(petWindow!=null) petWindow.Refresh();
             Find<TextBlock>("RoachCount").Text=world.Data.Roaches.Count.ToString("00");
             Find<TextBlock>("BabyCount").Text="幼虫 "+world.Data.Roaches.Count(r=>r.Baby);
             Find<TextBlock>("EggCount").Text=world.Data.Items.Count(i=>i.Kind==ItemKind.Egg).ToString("00");
@@ -274,7 +294,7 @@ namespace DesktopRoach
         private void Save()
         {
             if(demoMode) return;
-            try { world.Save(savePath); Find<TextBlock>("SaveText").Text="已保存 "+DateTime.Now.ToString("HH:mm")+" · v0.1"; }
+            try { world.Save(savePath); Find<TextBlock>("SaveText").Text="已保存 "+DateTime.Now.ToString("HH:mm")+" · v0.2"; }
             catch(IOException) { Find<TextBlock>("SaveText").Text="保存失败"; }
             catch(UnauthorizedAccessException) { Find<TextBlock>("SaveText").Text="保存失败"; }
             catch(InvalidOperationException) { Find<TextBlock>("SaveText").Text="保存失败"; }
@@ -289,13 +309,17 @@ namespace DesktopRoach
             SystemEvents.SessionSwitch-=SessionChanged; SystemEvents.PowerModeChanged-=PowerChanged; SystemEvents.DisplaySettingsChanged-=DisplayChanged;
             tray.Visible=false; tray.Dispose(); app.Shutdown();
         }
-        public void SetCompactSize() { window.Width=920; window.Height=670; }
+        public void SetCompactSize() { compact=true; window.Width=920; window.Height=670; if(petWindow!=null) petWindow.SetCompactSize(); }
+        public void VerifyPetCommands() { OpenPets(); petWindow.VerifyCommands(); }
         public void ExportPreview(string path)
         {
             window.UpdateLayout(); preview.InvalidateVisual();
-            var root=(FrameworkElement)window.Content;
+            var root=(FrameworkElement)(petWindow!=null?petWindow.Content:window.Content);
+            root.UpdateLayout();
             var bitmap=new RenderTargetBitmap((int)root.ActualWidth,(int)root.ActualHeight,96,96,PixelFormats.Pbgra32);
-            bitmap.Render(root);
+            var visual=new DrawingVisual();
+            using(var dc=visual.RenderOpen()) dc.DrawRectangle(new VisualBrush(root),null,new Rect(0,0,root.ActualWidth,root.ActualHeight));
+            bitmap.Render(visual);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             var encoder=new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using(var file=File.Create(path)) encoder.Save(file);
@@ -306,6 +330,8 @@ namespace DesktopRoach
         [STAThread] public static int Main(string[] args)
         {
             if(args.Contains("--self-test")) return SelfTests.Run();
+            int export=Array.IndexOf(args,"--export-assets");
+            if(export>=0 && args.Length>export+1) { Art.Export(Path.GetFullPath(args[export+1])); return 0; }
             bool created;
             using(var mutex=new Mutex(true,"Local\\DesktopRoach.App",out created))
             {
@@ -319,8 +345,15 @@ namespace DesktopRoach
                 };
                 try
                 {
-                    var controller=new Controller(app,args.Contains("--demo") || args.Contains("--snapshot"));
+                    var controller=new Controller(app,args.Contains("--demo") || args.Contains("--snapshot") || args.Contains("--ui-test"));
                     if(args.Contains("--compact")) controller.SetCompactSize();
+                    if(args.Contains("--pets")) controller.OpenPets();
+                    if(args.Contains("--ui-test"))
+                    {
+                        controller.VerifyPetCommands();
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"ui-test-results.txt"),"PASS: WPF routed button events for dispatch, feed, care, company, recall, selection. No native OS input was exercised.");
+                        app.Shutdown(); return 0;
+                    }
                     int shot=Array.IndexOf(args,"--snapshot");
                     if(shot>=0 && args.Length>shot+1)
                     {

@@ -73,6 +73,7 @@ namespace DesktopRoach
             if (ShowObjects) foreach (DeskObject obj in World.Data.Objects) DrawObject(dc,obj);
             foreach (var item in World.Data.Items) DrawItem(dc,item);
             foreach (var r in World.Data.Roaches) DrawRoach(dc,r,World.Data.Elapsed);
+            foreach (var pet in World.Data.Pets.Where(p=>p.Deployed)) Art.DrawPet(dc,pet,World.Data.Elapsed);
             double pollution = World.Data.Pollution;
             if (pollution > 1)
             {
@@ -87,6 +88,7 @@ namespace DesktopRoach
                 dc.DrawEllipse(Brush(World.EffectTool == Tool.Swatter ? "#60ED806A" : "#5062D5B0"),Pen("#F4FBF6",2),new Point(World.EffectX,World.EffectY),radius,radius);
                 dc.Pop();
             }
+            if(World.EffectLife>0) Art.DrawTool(dc,World.EffectTool,World.EffectX,World.EffectY,110,1-World.EffectLife/.45);
             if (inside && Interactive && SelectedTool != Tool.Observe)
             {
                 bool slowed = World.Data.Roaches.Any(r => r.Baby && Simulation.Distance(pointer.X,pointer.Y,r.X,r.Y)<42);
@@ -96,6 +98,7 @@ namespace DesktopRoach
                 Line(dc,color,2,pointer.X-7,pointer.Y,pointer.X+7,pointer.Y); Line(dc,color,2,pointer.X,pointer.Y-7,pointer.X,pointer.Y+7);
                 if (World.Cooldown > .2) Text(dc,World.Cooldown.ToString("0.0")+"s",14,color,pointer.X+12,pointer.Y+9);
                 if(slowed) Text(dc,"黏滞",15,color,pointer.X+12,pointer.Y-25);
+                if(World.EffectLife<=0) Art.DrawTool(dc,SelectedTool,pointer.X,pointer.Y,105,0);
             }
             dc.Pop(); dc.Pop();
         }
@@ -132,8 +135,7 @@ namespace DesktopRoach
                     for(int i=-1;i<=1;i++) { Line(dc,"#625A49",1.5,x+i*6,y-4,x+i*7+4,y-12); Line(dc,"#625A49",1.5,x+i*6,y+4,x+i*7-4,y+12); }
                     break;
                 case ItemKind.Bait:
-                    dc.DrawEllipse(Brush("#CEE6DB"),Pen("#43886D",2),new Point(x,y),22,18);
-                    Ellipse(dc,"#35755F",x,y,14,11); Ellipse(dc,"#B9DB77",x,y,5,4);
+                    Art.DrawTool(dc,Tool.Bait,x,y-9,72,0);
                     Text(dc,Math.Max(0,item.Life-item.Age).ToString("0")+"s",12,"#39745D",x-10,y+25);
                     break;
             }

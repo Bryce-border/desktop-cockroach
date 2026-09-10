@@ -30,8 +30,9 @@ namespace DesktopRoach
         public List<Roach> Roaches = new List<Roach>();
         public List<GroundItem> Items = new List<GroundItem>();
         public List<DeskObject> Objects = new List<DeskObject>();
+        public List<PetState> Pets = new List<PetState>();
     }
-    public class Simulation
+    public partial class Simulation
     {
         public const double Width = 1280, Height = 720;
         public const int MaxRoaches = 70, MaxItems = 100;
@@ -46,7 +47,7 @@ namespace DesktopRoach
         public void Reset()
         {
             int difficulty = Data == null ? 1 : Data.Difficulty;
-            Data = new SaveData { Difficulty = difficulty };
+            Data = new SaveData { Difficulty = difficulty, Pets = PetCatalog.Create() };
             Data.Objects.Add(new DeskObject { X = 100, Y = 140, Name = "项目文件" });
             Data.Objects.Add(new DeskObject { X = 100, Y = 260, Name = "灵感收集" });
             Data.Objects.Add(new DeskObject { X = 100, Y = 380, Name = "今日待办" });
@@ -127,6 +128,7 @@ namespace DesktopRoach
                         if (Distance(roach.X, roach.Y, obj.X, obj.Y) < 65)
                         { obj.X = Clamp(obj.X + Math.Cos(roach.Angle) * dt * 22, 55, Width - 70); obj.Y = Clamp(obj.Y + Math.Sin(roach.Angle) * dt * 22, 80, Height - 70); }
             }
+            TickPets(dt);
             Data.Pollution = Clamp(Data.Pollution + dt * (Data.Roaches.Count * .009 + Data.Items.Count(i => i.Kind == ItemKind.Stain) * .018), 0, 100);
         }
         private void Kill(Roach roach)
@@ -190,6 +192,8 @@ namespace DesktopRoach
                     data = (SaveData)new XmlSerializer(typeof(SaveData)).Deserialize(reader);
                 if (data.Version != 1 || data.Roaches == null || data.Items == null || data.Objects == null || data.Roaches.Count > MaxRoaches || data.Items.Count > MaxItems || data.Objects.Count > 10) return false;
                 if (!Finite(data.Pollution) || !Finite(data.Elapsed) || data.Roaches.Any(r => r == null || !Finite(r.X) || !Finite(r.Y) || !Finite(r.Angle) || !Finite(r.Age) || !Finite(r.Meal) || !Finite(r.Poison)) || data.Items.Any(i => i == null || !Finite(i.X) || !Finite(i.Y) || !Finite(i.Age) || !Finite(i.Life)) || data.Objects.Any(o => o == null || !Finite(o.X) || !Finite(o.Y))) return false;
+                if(!ValidatePets(data.Pets)) return false;
+                if(data.Pets==null || data.Pets.Count==0) data.Pets=PetCatalog.Create();
                 data.Difficulty = Math.Max(0, Math.Min(2, data.Difficulty)); data.Pollution = Clamp(data.Pollution, 0, 100);
                 Data = data; LastEvent = "已恢复上次的桌面生态"; return true;
             }

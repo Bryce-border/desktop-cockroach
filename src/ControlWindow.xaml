@@ -17,6 +17,7 @@
           <StackPanel><TextBlock Text="桌面蟑螂" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="DESKTOP ROACH / 生态控制台" FontSize="10" Foreground="#8A9F93" Margin="0,3,0,0"/></StackPanel>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button x:Name="PetsButton" Height="38" Padding="14,0" Margin="0,0,9,0" ToolTip="派遣桌宠、喂食与陪伴"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE902;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="桌宠小队"/></StackPanel></Button>
           <Button x:Name="PauseButton" Width="42" Height="38" Padding="0" Margin="0,0,9,0" ToolTip="暂停 / 继续"><TextBlock x:Name="PauseIcon" Text="&#xE769;" FontFamily="Segoe MDL2 Assets" FontSize="15"/></Button>
           <Button x:Name="DesktopButton" Background="#ACE3C4" Foreground="#183D2B" BorderBrush="#ACE3C4" Height="38" Padding="16,0"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" Margin="0,0,9,0" VerticalAlignment="Center"/><TextBlock x:Name="DesktopButtonText" Text="开启桌面入侵" FontWeight="SemiBold"/></StackPanel></Button>
         </StackPanel>
