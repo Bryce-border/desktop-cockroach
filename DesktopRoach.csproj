@@ -1,0 +1,18 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <AssemblyName>DesktopRoach</AssemblyName>
+    <RootNamespace>DesktopRoach</RootNamespace>
+    <OutputPath>bin\</OutputPath>
+    <StartupObject>DesktopRoach.Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System"/><Reference Include="System.Core"/><Reference Include="System.Xml"/><Reference Include="System.Xaml"/>
+    <Reference Include="System.Drawing"/><Reference Include="System.Windows.Forms"/>
+    <Reference Include="WindowsBase"/><Reference Include="PresentationCore"/><Reference Include="PresentationFramework"/>
+    <Compile Include="src\Simulation.cs"/><Compile Include="src\Scene.cs"/><Compile Include="src\DesktopApp.cs"/><Compile Include="src\SelfTests.cs"/>
+    <EmbeddedResource Include="src\ControlWindow.xaml"><LogicalName>ControlWindow.xaml</LogicalName></EmbeddedResource>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+</Project>
